@@ -1,0 +1,131 @@
+<head>
+    <style> body {
+        margin: 0;
+    } </style>
+    <script src="//unpkg.com/element-resize-detector/dist/element-resize-detector.min.js"></script>
+    <script src="//unpkg.com/3d-force-graph"></script>
+    <script src="//unpkg.com/dat.gui"></script>
+    <title>Snow Of War</title>
+</head>
+
+<body>
+<div id="3d-graph"></div>
+
+<script type="importmap">{ "imports": { "three": "//unpkg.com/three/build/three.module.js" }}</script>
+
+<script type="module">
+    import * as THREE from '//unpkg.com/three/build/three.module.js';
+    import {UnrealBloomPass} from '//unpkg.com/three/examples/jsm/postprocessing/UnrealBloomPass.js';
+
+    const distance = 400;
+
+    const Graph = ForceGraph3D()
+    (document.getElementById('3d-graph'))
+        .nodeThreeObject(node => {
+            if ([2].includes(node.val)) {
+                const imgTexture = new THREE.TextureLoader().load(`./${node.img}`, (texture) => {
+                    const aspectRatio = texture.image.width / texture.image.height; // Calculate aspect ratio
+                    const baseScale = node.val * 10; // Base scale multiplier
+                    sprite.scale.set(baseScale * aspectRatio, baseScale, 1); // Scale based on aspect ratio
+                });
+                imgTexture.colorSpace = THREE.SRGBColorSpace;
+                const material = new THREE.SpriteMaterial({map: imgTexture});
+                const sprite = new THREE.Sprite(material);
+                return sprite;
+            }
+        })
+        .backgroundColor('#000000')
+        .cameraPosition({z: distance})
+        // .onNodeClick(node => {
+        //     // Aim at node from outside it
+        //     const distance = 40;
+        //     const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
+        //
+        //     const newPos = node.x || node.y || node.z
+        //         ? {x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio}
+        //         : {x: 0, y: 0, z: distance}; // special case if node is in (0,0,0)
+        //
+        //     Graph.cameraPosition(
+        //         newPos, // new position
+        //         node, // lookAt ({ x, y, z })
+        //         300  // ms transition duration
+        //     );
+        //
+        //     const infoDiv = document.getElementById('node-info') || document.createElement('div');
+        //     infoDiv.id = 'node-info';
+        //     infoDiv.style.position = 'absolute';
+        //     infoDiv.style.top = '10px';
+        //     infoDiv.style.right = '10px';
+        //     infoDiv.style.padding = '10px';
+        //     infoDiv.style.overflow = 'auto';
+        //     infoDiv.style.maxWidth = '300px'; // Set max-width for the div
+        //     infoDiv.style.maxHeight = '300px'; // Set max-height for the div
+        //     infoDiv.innerHTML = node ? `<img src="./${node.img}" alt="Node Image" style="width: 100%; height: auto; max-width: 100%; max-height: 100%;">` : '';
+        //     if (!document.getElementById('node-info')) {
+        //         document.body.appendChild(infoDiv);
+        //     }
+        //
+        //
+        // })
+        // .onBackgroundClick(() => {
+        //     // Graph.cameraPosition({x: 0, y: 0, z: 0}, {x: 0, y: 0, z: 0}, 300);
+        //     const infoDiv = document.getElementById('node-info');
+        //     if (infoDiv) {
+        //         infoDiv.remove();
+        //     }
+        // })
+        // .graphData(gData)
+        .jsonUrl('./data.json')
+        .nodeLabel('name')
+        // .height(window.innerHeight - 60)
+        .nodeRelSize(4)
+        .linkWidth(1)
+        .linkDirectionalParticles(2)
+        .linkDirectionalParticleSpeed(0.005);
+
+    const bloomPass = new UnrealBloomPass();
+    bloomPass.strength = 0.03;
+    bloomPass.radius = 0.1;
+    bloomPass.threshold = 0.5;
+    Graph.postProcessingComposer().addPass(bloomPass);
+
+    elementResizeDetectorMaker().listenTo(
+        document.getElementById('3d-graph'),
+        el => Graph.width(el.offsetWidth)
+    );
+
+    let angle = 0;
+    let tiltAngle = 0;
+    setInterval(() => {
+        Graph.cameraPosition({
+            x: distance * Math.sin(angle),
+            y: 100 * Math.sin(tiltAngle), // Add tilt effect
+            z: distance * Math.cos(angle)
+        });
+        angle += Math.PI / 300;
+        tiltAngle += Math.PI / 150; // Adjust tilt speed
+    }, 20);
+
+    // Function to select a random node and show it in infoDiv
+    function showRandomNode() {
+        const nodes = Graph.graphData().nodes;
+        const randomNode = nodes[Math.floor(Math.random() * nodes.length)];
+        const infoDiv = document.getElementById('node-info') || document.createElement('div');
+        infoDiv.id = 'node-info';
+        infoDiv.style.position = 'absolute';
+        infoDiv.style.top = '10px';
+        infoDiv.style.right = '10px';
+        infoDiv.style.padding = '10px';
+        infoDiv.style.overflow = 'auto';
+        infoDiv.style.maxWidth = '300px'; // Set max-width for the div
+        infoDiv.style.maxHeight = '600px'; // Set max-height for the div
+        infoDiv.innerHTML = randomNode ? `<img src="./${randomNode.img}" alt="Node Image" style="width: 100%; height: auto; max-width: 100%; max-height: 100%;">` : '';
+        if (!document.getElementById('node-info')) {
+            document.body.appendChild(infoDiv);
+        }
+    }
+
+    // Call showRandomNode every 10 seconds
+    setInterval(showRandomNode, 10000);
+</script>
+</body>
