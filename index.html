@@ -1,9 +1,14 @@
 <head>
     <style>
-        body {
+        html, body {
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
             margin: 0;
+            padding: 0;
         }
-        .infoDiv {
+
+        #infoDiv {
             position: absolute;
             top: 0;
             left: 0;
@@ -12,11 +17,26 @@
             background: transparent;
             pointer-events: none; /* Allow clicks to pass through */
         }
+
+        .wrapper {
+            position: relative;
+        }
+
+        #infoDiv {
+            z-index: 10;
+        }
+
         #3d-graph {
             width: 100%;
             height: 100%;
+            position: relative;
         }
+
         video {
+            display: none;
+        }
+
+        .scene-nav-info {
             display: none;
         }
     </style>
@@ -29,11 +49,15 @@
 </head>
 
 <body>
-<div id="3d-graph"></div>
-<div class="infoDiv">
-    <a-scene mindar-face embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights, alpha: true" vr-mode-ui="enabled: true" device-orientation-permission-ui="enabled: false">
-        <a-camera active="false" position="0 0 0"></a-camera>
-    </a-scene>
+<div class="wrapper">
+    <div id="3d-graph"></div>
+    <div id="infoDiv">
+        <a-scene mindar-face="uiError:no; uiLoading:no;" embedded color-space="sRGB"
+                 renderer="colorManagement: true, physicallyCorrectLights, alpha: true" vr-mode-ui="enabled: true"
+                 device-orientation-permission-ui="enabled: false">
+            <a-camera active="false" position="0 0 0"></a-camera>
+        </a-scene>
+    </div>
 </div>
 
 <script>
