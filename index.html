@@ -1,36 +1,104 @@
 <head>
-    <style> body {
-        margin: 0;
-    } </style>
+    <style>
+        body {
+            margin: 0;
+        }
+        .infoDiv {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            pointer-events: none; /* Allow clicks to pass through */
+        }
+        #3d-graph {
+            width: 100%;
+            height: 100%;
+        }
+        video {
+            display: none;
+        }
+    </style>
     <script src="//unpkg.com/element-resize-detector/dist/element-resize-detector.min.js"></script>
     <script src="//unpkg.com/3d-force-graph"></script>
     <script src="//unpkg.com/dat.gui"></script>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-aframe.prod.js"></script>
     <title>Snow Of War</title>
 </head>
 
 <body>
 <div id="3d-graph"></div>
+<div class="infoDiv">
+    <a-scene mindar-face embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights, alpha: true" vr-mode-ui="enabled: true" device-orientation-permission-ui="enabled: false">
+        <a-camera active="false" position="0 0 0"></a-camera>
+    </a-scene>
+</div>
 
+<script>
+    // Get references to the scene and create a-assets dynamically
+    const scene = document.querySelector('a-scene');
+    const assets = document.createElement('a-assets');
+    scene.appendChild(assets);
+
+    // Create a container to hold all the mask images
+    const maskEntities = [];
+
+    for (let i = 1; i <= 23; i++) {
+        // Create img asset
+        const imgEl = document.createElement('img');
+        imgEl.setAttribute('id', `maskOverlay${i}`);
+        imgEl.setAttribute('src', `./assets/img/${i}.webp`);
+        imgEl.setAttribute('crossorigin', 'anonymous');
+        assets.appendChild(imgEl);
+
+        // Create a-entity with a-image
+        const entityEl = document.createElement('a-entity');
+        entityEl.setAttribute('mindar-face-target', 'anchorIndex: 168');
+
+        const imageEl = document.createElement('a-image');
+        imageEl.setAttribute('id', `maskImage${i}`);
+        imageEl.setAttribute('src', `#maskOverlay${i}`);
+        imageEl.setAttribute('position', '0 0.1 0.5');
+        imageEl.setAttribute('rotation', '0 0 0');
+        imageEl.setAttribute('visible', 'false'); // Initially hidden
+
+        entityEl.appendChild(imageEl);
+        scene.appendChild(entityEl);
+        maskEntities.push(imageEl); // Store image references for visibility management
+    }
+
+    // Function to make only one mask visible
+    function showRandomMask() {
+        const randomIndex = Math.floor(Math.random() * 23);
+        maskEntities.forEach((imageEl, index) => {
+            imageEl.setAttribute('visible', index === randomIndex);
+        });
+    }
+
+    // Show a random mask every 10 seconds
+    setInterval(showRandomMask, 10000);
+
+    // Show the first mask initially
+    showRandomMask();
+</script>
 <script type="importmap">{ "imports": { "three": "//unpkg.com/three/build/three.module.js" }}</script>
 
 <script type="module">
     import * as THREE from '//unpkg.com/three/build/three.module.js';
-    import {UnrealBloomPass} from '//unpkg.com/three/examples/jsm/postprocessing/UnrealBloomPass.js';
 
     const distance = 400;
 
     const Graph = ForceGraph3D()
     (document.getElementById('3d-graph'))
         .nodeThreeObject(node => {
-            if ([2].includes(node.val)) {
-                const imgTexture = new THREE.TextureLoader().load(`./${node.img}`, (texture) => {
-                    const aspectRatio = texture.image.width / texture.image.height; // Calculate aspect ratio
-                    const baseScale = node.val * 10; // Base scale multiplier
-                    sprite.scale.set(baseScale * aspectRatio, baseScale, 1); // Scale based on aspect ratio
-                });
+            if (node.val === 2) {
+                const imgTexture = new THREE.TextureLoader().load(`./${node.img}`);
                 imgTexture.colorSpace = THREE.SRGBColorSpace;
                 const material = new THREE.SpriteMaterial({map: imgTexture});
                 const sprite = new THREE.Sprite(material);
+                sprite.scale.set(50, 50, 1); // Scale based on aspect ratio
                 return sprite;
             }
         })
@@ -38,55 +106,24 @@
         .cameraPosition({z: distance})
         .jsonUrl('./data.json')
         .nodeLabel('name')
-        // .height(window.innerHeight - 60)
         .nodeRelSize(4)
         .linkWidth(1)
         .linkDirectionalParticles(2)
         .linkDirectionalParticleSpeed(0.005);
 
-    const bloomPass = new UnrealBloomPass();
-    bloomPass.strength = 0.03;
-    bloomPass.radius = 0.1;
-    bloomPass.threshold = 0.5;
-    Graph.postProcessingComposer().addPass(bloomPass);
-
-    elementResizeDetectorMaker().listenTo(
-        document.getElementById('3d-graph'),
-        el => Graph.width(el.offsetWidth)
-    );
-
     let angle = 0;
-    let tiltAngle = 0;
-    setInterval(() => {
+
+    // Simplified camera rotation without tilt
+    function updateCamera() {
         Graph.cameraPosition({
             x: distance * Math.sin(angle),
-            y: 100 * Math.sin(tiltAngle), // Add tilt effect
+            y: 0, // No tilt
             z: distance * Math.cos(angle)
         });
         angle += Math.PI / 300;
-        tiltAngle += Math.PI / 150; // Adjust tilt speed
-    }, 20);
-
-    // Function to select a random node and show it in infoDiv
-    function showRandomNode() {
-        const nodes = Graph.graphData().nodes;
-        const randomNode = nodes[Math.floor(Math.random() * nodes.length)];
-        const infoDiv = document.getElementById('node-info') || document.createElement('div');
-        infoDiv.id = 'node-info';
-        infoDiv.style.position = 'absolute';
-        infoDiv.style.top = '10px';
-        infoDiv.style.right = '10px';
-        infoDiv.style.padding = '10px';
-        infoDiv.style.overflow = 'auto';
-        infoDiv.style.maxWidth = '300px'; // Set max-width for the div
-        infoDiv.style.maxHeight = '600px'; // Set max-height for the div
-        infoDiv.innerHTML = randomNode ? `<img src="./${randomNode.img}" alt="Node Image" style="width: 100%; height: auto; max-width: 100%; max-height: 100%;">` : '';
-        if (!document.getElementById('node-info')) {
-            document.body.appendChild(infoDiv);
-        }
+        requestAnimationFrame(updateCamera);
     }
 
-    // Call showRandomNode every 10 seconds
-    setInterval(showRandomNode, 10000);
+    updateCamera();
 </script>
 </body>
