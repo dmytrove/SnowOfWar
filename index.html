@@ -28,6 +28,8 @@
     </style>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-aframe.prod.js"></script>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data: https:">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
 </head>
 <body>
 <div id="infoDiv">
@@ -39,10 +41,10 @@
 </div>
 
 <script>
-    // Get references to the scene and create a-assets dynamically
-    const scene = document.querySelector('a-scene');
+    // Rename the A-Frame scene reference to avoid conflict
+    const aframeScene = document.querySelector('a-scene');
     const assets = document.createElement('a-assets');
-    scene.appendChild(assets);
+    aframeScene.appendChild(assets);
 
     let currentMaskIndex = -1; // Track the currently visible mask
 
@@ -70,7 +72,7 @@
     imageEl.setAttribute('position', '0 0.1 0.5');
     imageEl.setAttribute('rotation', '0 0 0');
     entityEl.appendChild(imageEl);
-    scene.appendChild(entityEl);
+    aframeScene.appendChild(entityEl);
 
     // Function to update the visible mask
     function showRandomMask() {
@@ -96,8 +98,8 @@
 <script type="module">
     import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
 
-    // Scene Setup
-    const scene = new THREE.Scene();
+    // Rename the THREE.js scene to avoid conflict
+    const threeScene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -107,7 +109,7 @@
 
     // Group for images
     const imageGroup = new THREE.Group();
-    scene.add(imageGroup);
+    threeScene.add(imageGroup);
 
     const radius = 3; // Sphere radius
     const imageCount = 23; // Total images and meshes to create
@@ -119,6 +121,7 @@
     let loadedTextures = 0;
     for (let i = 1; i <= imageCount; i++) {
         const imagePath = `assets/img/${i}_30.webp`;
+        textureLoader.setCrossOrigin('anonymous');
         textureLoader.load(
             imagePath,
             (texture) => {
@@ -199,7 +202,7 @@
             mesh.rotation.z += mesh.rotationSpeed.z;
         });
 
-        renderer.render(scene, camera);
+        renderer.render(threeScene, camera);
     }
 
     animate();
